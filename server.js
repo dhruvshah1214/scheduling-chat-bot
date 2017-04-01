@@ -75,16 +75,51 @@ bot.dialog('/', dialog);
 dialog.matches('selectBusiness', [
     function (session, args, next) {
         var bname = builder.EntityRecognizer.findEntity(args.entities, 'BusinessName');
-        console.log('NAME: %s', bname.entity);
+        //console.log('NAME: %s', bname.entity);
 	next(bname);
     },
     function (session, results) {
-        if (results) {
+        if (results && results.entity) {
             // ... save task
 	    getBusinessData(results.entity);
             session.send("Ok... selected %s", results.entity);
         } else {
-            session.send("Ok");
+            session.send("Couldn't find a business name in your request. Try again.");
         }
     }
 ]);
+
+dialog.matches('contactManager', 
+    function (session, args, next) {
+        if(currentBusiness) {
+		session.send('%s', currentBusiness.phone);
+	}
+	else {
+		session.send("Select a business to get contact information from");
+	}
+    }
+);
+
+dialog.matches('schedule', [
+    function (session, args, next) {
+        var bname = builder.EntityRecognizer.findEntity(args.entities, 'BusinessName');
+        //console.log('NAME: %s', bname.entity);
+        next(bname);
+    },
+    function (session, results) {
+        if (results && results.entity) {
+            // ... save task
+            getBusinessData(results.entity);
+            session.send("Ok... selected %s", results.entity);
+        } else {
+            session.send("Couldn't find a business name in your request. Try again.");
+        }
+    }
+]);
+
+dialog.matches('null',
+    function (session) {
+        session.send('Sorry, there was an error. Try again.');
+    });
+
+dialog.onDefault(function(session){session.send('Sorry, there was an error. Try again.')});
