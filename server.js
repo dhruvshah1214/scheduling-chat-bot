@@ -32,6 +32,7 @@ bot.dialog('/', dialog);
 
 dialog.matches('selectBusiness', [
     function (session, args, next) {
+	console.log('getc');
         var bname = builder.EntityRecognizer.findEntity(args.entities, 'BusinessName');
         next(bname);
     },
