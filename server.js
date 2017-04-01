@@ -30,4 +30,17 @@ var dialog = new builder.IntentDialog({ recognizers: [recognizer] });
 
 bot.dialog('/', dialog);
 
-
+dialog.matches('selectBusiness', [
+    function (session, args, next) {
+        var bname = builder.EntityRecognizer.findEntity(args.entities, 'BusinessName');
+        next(bname);
+    },
+    function (session, results) {
+        if (results.response) {
+            // ... save task
+            session.send("Ok... selected %s", results.response);
+        } else {
+            session.send("Ok");
+        }
+    }
+]);
