@@ -9,6 +9,7 @@
   "license": "ISC",
   "dependencies": {
     "botbuilder": "^3.7.0",
+    "firebase": "^3.7.4",
     "restify": "^4.3.0"
   },
   "description": ""
