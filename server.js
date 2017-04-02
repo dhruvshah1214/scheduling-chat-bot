@@ -466,6 +466,7 @@ dialog.matches('cancelAppointment', [
         if (results.response) {
             var eventID = canableAppts[results.response.entity];
             request.delete("https://www.googleapis.com/calendar/v3/calendars/" + currentBusiness.calendarId + "/events/" + eventID + "?access_token=" + currentBusiness.accessKey);
+            session.send("Appointment deleted!");
         } else {
             session.send("Unable to delete appointment.");
         }
