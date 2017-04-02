@@ -384,13 +384,13 @@ dialog.matches('viewAppointment', [
                                 var startDate = new Date(evJSON["start"]["dateTime"]);
                                 var endDate = new Date(evJSON["end"]["dateTime"]);
                                 //console.log(startDate);
-                                var startDateString = dateFormat(startDate, "mmmm dS, h:MM TT");
+                                var startDateString = dateFormat(moment.utc(startDate).local().toDate(), "mmmm dS, h:MM TT");
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
-                                    endDateString = dateFormat(endDate, "h:MM TT");
+                                    endDateString = dateFormat(moment.utc(endDate).local().toDate(), "h:MM TT");
                                 }
                                 else {
-                                    endDateString = dateFormat(endDate, "mmmm dS, h:MM TT");
+                                    endDateString = dateFormat(moment.utc(endDate).local().toDate(), "mmmm dS, h:MM TT");
                                 }
                                 // console.log("send");
                                 console.log(currentBusiness);
