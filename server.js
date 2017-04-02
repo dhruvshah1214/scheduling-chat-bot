@@ -382,11 +382,13 @@ dialog.matches('viewAppointment', [
                             if (evJSON["description"].trim() == userID.trim()) {
                                 //console.log(evJSON["start"]["dateTime"]);
                                 var startDate = new Date(evJSON["start"]["dateTime"]);
-                                session.send("Startdata %s", startDate);
+                                var startDateM = moment(startDate).local();
+                                session.send("Startdata %s", startDateM);
 
                                 var endDate = new Date(evJSON["end"]["dateTime"]);
                                 console.log(moment.utc(startDate).local().toDate());
-                                var startDateString = dateFormat(moment.utc(startDate).local().toDate(), "mmmm dS, h:MM TT");
+                                
+                                var startDateString = dateFormat(startDateM.toDate(), "mmmm dS, h:MM TT");
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
                                     endDateString = dateFormat(moment.utc(endDate).local().toDate(), "h:MM TT");
