@@ -383,12 +383,9 @@ dialog.matches('viewAppointment',
                                 //console.log(evJSON["start"]["dateTime"]);
                                 var startDate = new Date(evJSON["start"]["dateTime"]);
                                 var startDateM = moment(startDate).utcOffset('-0700');
-                                session.send("Startdata %s", startDateM);
 
                                 var endDate = new Date(evJSON["end"]["dateTime"]);
                                 var endDateM = moment(endDate).utcOffset('-0700');
-
-                                console.log(moment.utc(startDate).local().toDate());
 
                                 var startDateString = startDateM.format('MMM Do, h:mma');
                                 var endDateString = null;
