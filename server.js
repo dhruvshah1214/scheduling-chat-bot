@@ -380,9 +380,10 @@ dialog.matches('viewAppointment', [
 
                         if (evJSON["description"]) {
                             if (evJSON["description"].trim() == userID.trim()) {
-                                var startDate = new moment(evJSON["start"]["dateTime"]).utc().toDate();
-                                var endDate = new moment(evJSON["end"]["dateTime"]).utc().toDate();
-                                console.log(startDate);
+                                //console.log(evJSON["start"]["dateTime"]);
+                                var startDate = new Date(evJSON["start"]["dateTime"]);
+                                var endDate = new Date(evJSON["end"]["dateTime"]);
+                                //console.log(startDate);
                                 var startDateString = dateFormat(startDate, "mmmm dS, h:MM TT");
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
