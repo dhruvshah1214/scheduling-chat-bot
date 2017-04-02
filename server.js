@@ -358,7 +358,7 @@ dialog.matches('schedule', [
     }
 ]);
 
-dialog.matches('viewAppointment', [ 
+dialog.matches('viewAppointment',
     function(session, args, next) {
         if(currentBusiness) {
                 var url = 'https://www.googleapis.com/calendar/v3/calendars/' + currentBusiness['calendarId'] + '/events?&access_token=' + currentBusiness.accessKey;
@@ -410,7 +410,7 @@ dialog.matches('viewAppointment', [
                 session.send("No business selected. Select a business and try again.");
             }
     }
-]);
+);
 
 
 dialog.matches('cancelAppointment', [ 
