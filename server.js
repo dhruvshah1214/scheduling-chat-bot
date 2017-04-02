@@ -390,13 +390,13 @@ dialog.matches('viewAppointment',
 
                                 console.log(moment.utc(startDate).local().toDate());
 
-                                var startDateString = startDateM.format('mmmm dS, h:MM TT');
+                                var startDateString = startDateM.format('MMM Do, h:mma');
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
-                                    endDateString = dateFormat(endDateM, "h:MM TT");
+                                    endDateString = dendDateM.format('h:mma');
                                 }
                                 else {
-                                    endDateString = dateFormat(endDateM, "mmmm dS, h:MM TT");
+                                    endDateString = dendDateM.format('MMM Do, h:mma');
                                 }
                                 // console.log("send");
                                 console.log(currentBusiness);
