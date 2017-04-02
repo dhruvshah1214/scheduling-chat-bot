@@ -52,19 +52,46 @@ var config = {
 firebase.initializeApp(config);
 var defaultDatabase = firebase.database();
 var currentBusiness = null;
-var getBusinessData = function(bnameString) {
+var businessName = null;
+var getBusinessData = function(bnameString, callback) {
     var database = firebase.database();
-    return database.ref(bnameString + "/").once('value').then(function(snapshot) {
+    database.ref(bnameString + "/").once('value').then(function(snapshot) {
        currentBusiness = snapshot.val();
+       businessName = bnameString;
        console.log(currentBusiness);
+       callback();
    });
 }
 
+function formatDate(date) {
+  var monthNames = [
+    "January", "February", "March",
+    "April", "May", "June", "July",
+    "August", "September", "October",
+    "November", "December"
+  ];
+
+  var day = date.getDate();
+  var monthIndex = date.getMonth();
+
+  return day + ' ' + monthNames[monthIndex] + ' ' + year;
+}
+
 //========================================================
-// Google Calendar Integration
+// Helper Dependencies
 //========================================================
 
 var request = require('request');
+var dateFormat = require('dateformat');
+var moment = require('moment');
+
+var userID = null;
+var canableAppts = {};
+
+
+function sameDay(date1, date2) {
+    return (date1.getFullYear() === date2.getFullYear()) && (date1.getMonth() === date2.getMonth()) && (date1.getDate() == date2.getDate());
+}
 
 //=========================================================
 // Bots Dialogs
@@ -79,10 +106,19 @@ dialog.matches('selectBusiness', [
         next(bname);
     },
     function (session, results) {
+        userID = session.message.user.id;
+        console.log(userID);
         if (results && results.entity) {
             // ... save task
-            getBusinessData(results.entity);
-            session.send("Ok... selected %s", results.entity);
+            getBusinessData(results.entity, function() {
+                if (currentBusiness) {
+                    session.send("Ok... selected %s", results.entity);
+                }
+                else {
+                    session.send("Couldn't find a business by that name. Try again.");
+                }
+            });
+            
         } else {
             session.send("Couldn't find a business name in your request. Try again.");
         }
@@ -100,18 +136,20 @@ dialog.matches('contactManager',
   }
 );
 
-dialog.matches('schedule', [
+dialog.matches('query', [
     function (session, args, next) {
-        var timeEntity = builder.EntityRecognizer.findEntity(args.entities, 'time');
+        var timeEntity = builder.EntityRecognizer.resolveTime(args.entities);
         var employeeNameEntity = builder.EntityRecognizer.findEntity(args.entities, 'employeeName');
-        console.log(JSON.stringify(args.entities));
+        //console.log(JSON.stringify(args.entities));
         var employeeName = null;
         var time = null;
         if (employeeNameEntity && employeeNameEntity.entity) {
             employeeName = employeeNameEntity.entity;
         }
-        if(timeEntity && timeEntity.entity) {
-            time = timeEntity.entity;
+        if(timeEntity) {
+            var newTime = timeEntity.getTime() + 7 * 60 * 60 * 1000;
+            var realE = moment(newTime).utc();
+            time = realE.valueOf();
         }
         else {
             for(var dict in args.entities) {
@@ -123,31 +161,310 @@ dialog.matches('schedule', [
         next([time, employeeName]);
     },
     function (session, results) {
-        console.log(JSON.stringify(results));
+        //console.log(JSON.stringify(results));
         if (results[0] && !results[1]) {
-            // pick any free employee?
+            //invalid; time, but no employee given
+
+
         } else if(!results[0] && results[1]) {
-            builder.Prompts.time(session, 'What time would you like to set an appointment?');
+            // no time, employee given; show next five busy items
+            if(currentBusiness) {
+                var url = 'https://www.googleapis.com/calendar/v3/calendars/' + currentBusiness['calendarId'] + '/events?&access_token=' + currentBusiness.accessKey;
+                // console.log(JSON.stringify(url));
+                request.get(url, function (error, response, body) {
+                if(error != null || body.error != null) {
+
+                }
+                else {
+                    //console.log(body);
+                    var bodyJSON = JSON.parse(body);
+                    //console.log(bodyJSON["items"]);
+                    if(bodyJSON["items"].length > 0) {
+                        session.send("%s is busy from...", results[1]);
+                    }
+                    else {
+                        // console.log("NO ITEMS");
+                    }
+                    var itemsJSON = bodyJSON["items"];
+                    // console.log(itemsJSON);
+                    for(i = 0; i < Math.min(itemsJSON.length, 5); i++) {
+                        
+                        var evJSON = itemsJSON[i];
+                        if (evJSON["summary"].toLowerCase().trim() == results[1].toLowerCase().trim()) {
+                            var startDate = new Date(evJSON["start"]["dateTime"]);
+                            var endDate = new Date(evJSON["end"]["dateTime"]);
+                            var startDateString = dateFormat(startDate, "mmmm dS, h:MM TT");
+                            var endDateString = null;
+                            if (sameDay(startDate, endDate)) {
+                                endDateString = dateFormat(endDate, "h:MM TT");
+                            }
+                            else {
+                                endDateString = dateFormat(endDate, "mmmm dS, h:MM TT");
+                            }
+                            // console.log("send");
+                            session.send("%s to %s", startDateString, endDateString);
+                        }
+                    }
+
+                }
+                });
+            }
+            else {
+                session.send("No business selected. Select a business and try again.");
+            }
+            
         }
         else if(results[0] && results[1]) {
-            // check if employee is busy
-            // if so, ask if want to change times or employess
-            // if not, ask to confirm book.
+            // time and employee
+            // use google's freebusy to return free or busy
 
-            //request.get('http://google.com/img.png')
+            if(currentBusiness) {
+                var url = 'https://www.googleapis.com/calendar/v3/calendars/' + currentBusiness['calendarId'] + '/events?orderBy=startTime&singleEvents=true&access_token=' + currentBusiness.accessKey;
+                // console.log(JSON.stringify(url));
+                request.get(url, function (error, response, body) {
+                if(error != null || body.error != null) {
+
+                }
+                else {
+                    //console.log(body);
+                    var isClean = true;
+                    var bodyJSON = JSON.parse(body);
+                    // console.log(bodyJSON["items"]);
+                    var itemsJSON = bodyJSON["items"];
+                    // console.log(itemsJSON);
+                    for(i = 0; i < itemsJSON.length; i++) {
+                        
+                        var evJSON = itemsJSON[i];
+                        if (evJSON["summary"].toLowerCase().trim() == results[1].toLowerCase().trim()) {
+                            var startDate = new Date(evJSON["start"]["dateTime"]);
+                            var endDate = new Date(evJSON["end"]["dateTime"]);
+                            
+                            var mxtime = currentBusiness["maxTime"];
+                            if (mxtime == 0 || mxtime == null || isNaN(mxtime)) {
+                                mxtime = 60; //hardcoded
+                            }
+
+                            var sstart = moment(results[0]).valueOf();
+                            var hasOverlap = Math.max(startDate.getTime(), results[0]) < Math.min(endDate.getTime(), results[0] + mxtime * 60000);
+
+                            if (hasOverlap) {
+                                isClean = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (isClean) {
+                        session.send("%s is completely free during that time!", results[1]);
+                    }
+                    else {
+                        session.send("Sorry, but %s is not available during that time.", results[1]);
+                    }
+                }
+                });
+            }
+            else {
+                session.send("No business selected. Select a business and try again.");
+            }
 
         }
         else {
           session.send("I don't understand. Try again.");
         }
+    }
+]);
+
+
+dialog.matches('schedule', [
+    function (session, args, next) {
+        var timeEntity = builder.EntityRecognizer.resolveTime(args.entities);
+        var employeeNameEntity = builder.EntityRecognizer.findEntity(args.entities, 'employeeName');
+        //console.log(JSON.stringify(args.entities));
+        var employeeName = null;
+        var time = null;
+        if (employeeNameEntity && employeeNameEntity.entity) {
+            employeeName = employeeNameEntity.entity;
+        }
+        if(timeEntity) {
+            var newTime = timeEntity.getTime() + 7 * 60 * 60 * 1000;
+            var realE = moment(newTime).utc();
+            time = realE.valueOf();
+        }
+        else {
+            for(var dict in args.entities) {
+                if (dict['type'] === "builtin.datetime.time") {
+                    time = dict['entity'];
+                }
+            }
+        }
+        next([time, employeeName]);
     },
     function (session, results) {
-         var time = builder.EntityRecognizer.resolveTime([results.response]);
-         console.log(JSON.stringify(results.response.entity));
+        //console.log(JSON.stringify(results));
+        if (results[0] && !results[1]) {
+            //time but no preference
+            
 
-    },
+        } else if(!results[0] && results[1]) {
+            // no time, employee given; request time
+            session.send("No time, b emp");
+        }
+        else if(results[0] && results[1]) {
+            // time and employee
+            // add an event to google cal
+            if(currentBusiness) {
+                var url = 'https://www.googleapis.com/calendar/v3/calendars/' + currentBusiness['calendarId'] + '/events?access_token=' + currentBusiness.accessKey;
+                var mxtime = currentBusiness["maxTime"];
+                if (mxtime == 0 || mxtime == null || isNaN(mxtime)) {
+                    mxtime = 60; //hardcoded
+                }
+                var sT = moment(results[0]).utc();
+                var endT = moment(results[0] + 60000 * mxtime).utc();
+                var postData = {
+                    summary: results[1].toLowerCase(),
+                    start: {dateTime: sT},
+                    end: {dateTime: endT},
+                    description: userID
+                };
+                var options = {
+                  method: 'POST',
+                  body: postData,
+                  json: true,
+                  url: url
+                };
+                request(options, function (error, response, body) {
+                    if(error != null || body.error != null) {
+                        /*console.log(error);
+                        console.log(body.error);*/
+                    }
+                    else {
+                        console.log(body);
+                        if (body["kind"] != "calendar#event") {
+                            session.send("There was an error creating the event.");
+                        }
+                        else {
+                            session.send("Event created!");
+                        }
+                    }
+                });
+            }
+            else {
+                session.send("No business selected. Select a business and try again.");
+            }
 
+        }
+        else {
+          session.send("I don't understand. Try again.");
+        }
+    }
 ]);
+
+dialog.matches('viewAppointment', [ 
+    function(session, args, next) {
+        if(currentBusiness) {
+                var url = 'https://www.googleapis.com/calendar/v3/calendars/' + currentBusiness['calendarId'] + '/events?&access_token=' + currentBusiness.accessKey;
+                // console.log(JSON.stringify(url));
+                request.get(url, function (error, response, body) {
+                if(error != null || body.error != null) {
+
+                }
+                else {
+                    //console.log(body);
+                    var bodyJSON = JSON.parse(body);
+                    //console.log(bodyJSON["items"]);
+                    var itemsJSON = bodyJSON["items"];
+                    // console.log(itemsJSON);
+                    for(i = 0; i < itemsJSON.length; i++) {
+                        
+                        var evJSON = itemsJSON[i];
+                        // console.log(evJSON["description"]);
+
+                        if (evJSON["description"]) {
+                            if (evJSON["description"].trim() == userID.trim()) {
+                                var startDate = new Date(evJSON["start"]["dateTime"]);
+                                var endDate = new Date(evJSON["end"]["dateTime"]);
+                                var startDateString = dateFormat(startDate, "mmmm dS, h:MM TT");
+                                var endDateString = null;
+                                if (sameDay(startDate, endDate)) {
+                                    endDateString = dateFormat(endDate, "h:MM TT");
+                                }
+                                else {
+                                    endDateString = dateFormat(endDate, "mmmm dS, h:MM TT");
+                                }
+                                // console.log("send");
+                                console.log(currentBusiness);
+                                session.send("You have an appointment at %s, on %s to %s", businessName, startDateString, endDateString);
+                             }
+                        }
+                    }
+
+                }
+                });
+            }
+            else {
+                session.send("No business selected. Select a business and try again.");
+            }
+    }
+]);
+
+
+dialog.matches('cancelAppointment', [ 
+    function(session, args, next) {
+        if(currentBusiness) {
+                var url = 'https://www.googleapis.com/calendar/v3/calendars/' + currentBusiness['calendarId'] + '/events?access_token=' + currentBusiness.accessKey;
+                // console.log(JSON.stringify(url));
+                request.get(url, function (error, response, body) {
+                if(error != null || body.error != null) {
+
+                }
+                else {
+                    //console.log(body);
+                    var bodyJSON = JSON.parse(body);
+                    //console.log(bodyJSON["items"]);
+                    var itemsJSON = bodyJSON["items"];
+                    // console.log(itemsJSON);
+                    for(i = 0; i < itemsJSON.length; i++) {
+                        
+                        var evJSON = itemsJSON[i];
+                        // console.log(evJSON["description"]);
+
+                        if (evJSON["description"]) {
+                            if (evJSON["description"].trim() == userID.trim()) {
+                                var summ = evJSON["summary"];
+                                var startDate = new Date(evJSON["start"]["dateTime"]);
+                                var endDate = new Date(evJSON["end"]["dateTime"]);
+                                var startDateString = dateFormat(startDate, "mmmm dS, h:MM TT");
+                                var endDateString = null;
+                                if (sameDay(startDate, endDate)) {
+                                    endDateString = dateFormat(endDate, "h:MM TT");
+                                }
+                                else {
+                                    endDateString = dateFormat(endDate, "mmmm dS, h:MM TT");
+                                }
+                                var fullS = businessName + ", " + startDateString + " to " + endDateString;
+                                canableAppts[fullS] = evJSON["id"];
+                             }
+                        }
+                    }
+                    builder.Prompts.choice(session, "Choose an appointment to cancel.", canableAppts, { listStyle: builder.ListStyle.button })
+
+                }
+                });
+            }
+            else {
+                session.send("No business selected. Select a business and try again.");
+            }
+    },
+    function (session, results) {
+        if (results.response) {
+            var eventID = canableAppts[results.response.entity];
+            request.delete("https://www.googleapis.com/calendar/v3/calendars/" + currentBusiness.calendarId + "/events/" + eventID + "?access_token=" + currentBusiness.accessKey);
+        } else {
+            session.send("Unable to delete appointment.");
+        }
+
+    }
+]);
+
 
 dialog.matches('null',
     function (session) {

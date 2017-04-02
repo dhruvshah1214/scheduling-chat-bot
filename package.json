@@ -9,7 +9,9 @@
   "license": "ISC",
   "dependencies": {
     "botbuilder": "^3.7.0",
+    "dateformat": "^2.0.0",
     "firebase": "^3.7.4",
+    "moment": "^2.18.1",
     "request": "^2.81.0",
     "restify": "^4.3.0"
   },
