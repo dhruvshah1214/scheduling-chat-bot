@@ -10,6 +10,7 @@
   "dependencies": {
     "botbuilder": "^3.7.0",
     "firebase": "^3.7.4",
+    "request": "^2.81.0",
     "restify": "^4.3.0"
   },
   "description": ""

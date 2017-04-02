@@ -8,7 +8,7 @@ var builder = require('botbuilder');
 // Setup Restify Server
 var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, function () {
-   console.log('%s listening to %s', server.name, server.url); 
+ console.log('%s listening to %s', server.name, server.url); 
 });
 
 var appId = process.env.MICROSOFT_APP_ID;
@@ -55,16 +55,16 @@ var currentBusiness = null;
 var getBusinessData = function(bnameString) {
     var database = firebase.database();
     return database.ref(bnameString + "/").once('value').then(function(snapshot) {
-	    currentBusiness = snapshot.val();
-	    console.log(currentBusiness);
-    });
+       currentBusiness = snapshot.val();
+       console.log(currentBusiness);
+   });
 }
 
 //========================================================
 // Google Calendar Integration
 //========================================================
 
-
+var request = require('request');
 
 //=========================================================
 // Bots Dialogs
@@ -73,34 +73,6 @@ var getBusinessData = function(bnameString) {
 bot.dialog('/', dialog);
 
 dialog.matches('selectBusiness', [
-    function (session, args, next) {
-        var bname = builder.EntityRecognizer.findEntity(args.entities, 'BusinessName');
-        //console.log('NAME: %s', bname.entity);
-	next(bname);
-    },
-    function (session, results) {
-        if (results && results.entity) {
-            // ... save task
-	    getBusinessData(results.entity);
-            session.send("Ok... selected %s", results.entity);
-        } else {
-            session.send("Couldn't find a business name in your request. Try again.");
-        }
-    }
-]);
-
-dialog.matches('contactManager', 
-    function (session, args, next) {
-        if(currentBusiness) {
-		session.send('%s', currentBusiness.phone);
-	}
-	else {
-		session.send("Select a business to get contact information from");
-	}
-    }
-);
-
-dialog.matches('schedule', [
     function (session, args, next) {
         var bname = builder.EntityRecognizer.findEntity(args.entities, 'BusinessName');
         //console.log('NAME: %s', bname.entity);
@@ -115,6 +87,66 @@ dialog.matches('schedule', [
             session.send("Couldn't find a business name in your request. Try again.");
         }
     }
+]);
+
+dialog.matches('contactManager', 
+    function (session, args, next) {
+        if(currentBusiness) {
+            session.send('%s', currentBusiness.phone);
+        }
+        else {
+          session.send("Select a business to get contact information from");
+      }
+  }
+);
+
+dialog.matches('schedule', [
+    function (session, args, next) {
+        var timeEntity = builder.EntityRecognizer.findEntity(args.entities, 'time');
+        var employeeNameEntity = builder.EntityRecognizer.findEntity(args.entities, 'employeeName');
+        console.log(JSON.stringify(args.entities));
+        var employeeName = null;
+        var time = null;
+        if (employeeNameEntity && employeeNameEntity.entity) {
+            employeeName = employeeNameEntity.entity;
+        }
+        if(timeEntity && timeEntity.entity) {
+            time = timeEntity.entity;
+        }
+        else {
+            for(var dict in args.entities) {
+                if (dict['type'] === "builtin.datetime.time") {
+                    time = dict['entity'];
+                }
+            }
+        }
+        next([time, employeeName]);
+    },
+    function (session, results) {
+        console.log(JSON.stringify(results));
+        if (results[0] && !results[1]) {
+            // pick any free employee?
+        } else if(!results[0] && results[1]) {
+            builder.Prompts.time(session, 'What time would you like to set an appointment?');
+        }
+        else if(results[0] && results[1]) {
+            // check if employee is busy
+            // if so, ask if want to change times or employess
+            // if not, ask to confirm book.
+
+            //request.get('http://google.com/img.png')
+
+        }
+        else {
+          session.send("I don't understand. Try again.");
+        }
+    },
+    function (session, results) {
+         var time = builder.EntityRecognizer.resolveTime([results.response]);
+         console.log(JSON.stringify(results.response.entity));
+
+    },
+
 ]);
 
 dialog.matches('null',
