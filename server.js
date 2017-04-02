@@ -382,19 +382,21 @@ dialog.matches('viewAppointment',
                             if (evJSON["description"].trim() == userID.trim()) {
                                 //console.log(evJSON["start"]["dateTime"]);
                                 var startDate = new Date(evJSON["start"]["dateTime"]);
-                                var startDateM = moment.utc(startDate).local();
+                                var startDateM = moment(startDate).utcOffset('-0700');
                                 session.send("Startdata %s", startDateM);
 
                                 var endDate = new Date(evJSON["end"]["dateTime"]);
+                                var endDateM = moment(endDate).utcOffset('-0700');
+
                                 console.log(moment.utc(startDate).local().toDate());
 
                                 var startDateString = dateFormat(startDateM.toDate(), "mmmm dS, h:MM TT");
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
-                                    endDateString = dateFormat(moment.utc(endDate).local().toDate(), "h:MM TT");
+                                    endDateString = dateFormat(endDateM.toDate(), "h:MM TT");
                                 }
                                 else {
-                                    endDateString = dateFormat(moment.utc(endDate).local().toDate(), "mmmm dS, h:MM TT");
+                                    endDateString = dateFormat(endDateM.toDate(), "mmmm dS, h:MM TT");
                                 }
                                 // console.log("send");
                                 console.log(currentBusiness);
