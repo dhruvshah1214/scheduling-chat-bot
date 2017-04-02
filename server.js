@@ -365,7 +365,7 @@ dialog.matches('viewAppointment',
                 // console.log(JSON.stringify(url));
                 request.get(url, function (error, response, body) {
                 if(error != null || body.error != null) {
-
+                    session.send("Error.");
                 }
                 else {
                     //console.log(body);
@@ -390,18 +390,21 @@ dialog.matches('viewAppointment',
 
                                 console.log(moment.utc(startDate).local().toDate());
 
-                                var startDateString = dateFormat(startDateM.toDate(), "mmmm dS, h:MM TT");
+                                var startDateString = dateFormat(startDateM, "mmmm dS, h:MM TT");
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
-                                    endDateString = dateFormat(endDateM.toDate(), "h:MM TT");
+                                    endDateString = dateFormat(endDateM, "h:MM TT");
                                 }
                                 else {
-                                    endDateString = dateFormat(endDateM.toDate(), "mmmm dS, h:MM TT");
+                                    endDateString = dateFormat(endDateM, "mmmm dS, h:MM TT");
                                 }
                                 // console.log("send");
                                 console.log(currentBusiness);
                                 session.send("You have an appointment at %s, on %s to %s", businessName, startDateString, endDateString);
-                             }
+                            }
+                        }
+                        else {
+                            session.send("Error.");
                         }
                     }
 
