@@ -383,7 +383,7 @@ dialog.matches('viewAppointment', [
                                 //console.log(evJSON["start"]["dateTime"]);
                                 var startDate = new Date(evJSON["start"]["dateTime"]);
                                 var endDate = new Date(evJSON["end"]["dateTime"]);
-                                //console.log(startDate);
+                                console.log(moment.utc(startDate).local().toDate());
                                 var startDateString = dateFormat(moment.utc(startDate).local().toDate(), "mmmm dS, h:MM TT");
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
