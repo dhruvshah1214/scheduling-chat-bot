@@ -390,7 +390,7 @@ dialog.matches('viewAppointment',
 
                                 console.log(moment.utc(startDate).local().toDate());
 
-                                var startDateString = dateFormat(startDateM, "mmmm dS, h:MM TT");
+                                var startDateString = startDateM.format('mmmm dS, h:MM TT');
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
                                     endDateString = dateFormat(endDateM, "h:MM TT");
