@@ -302,7 +302,7 @@ dialog.matches('schedule', [
         //console.log(JSON.stringify(results));
         if (results[0] && !results[1]) {
             //time but no preference
-            
+            session.send(" time, no emp");
 
         } else if(!results[0] && results[1]) {
             // no time, employee given; request time
@@ -333,8 +333,8 @@ dialog.matches('schedule', [
                 };
                 request(options, function (error, response, body) {
                     if(error != null || body.error != null) {
-                        /*console.log(error);
-                        console.log(body.error);*/
+                        console.log(error);
+                        console.log(body.error);
                     }
                     else {
                         console.log(body);
@@ -380,8 +380,9 @@ dialog.matches('viewAppointment', [
 
                         if (evJSON["description"]) {
                             if (evJSON["description"].trim() == userID.trim()) {
-                                var startDate = new Date(evJSON["start"]["dateTime"]);
-                                var endDate = new Date(evJSON["end"]["dateTime"]);
+                                var startDate = new moment(evJSON["start"]["dateTime"]).utc().toDate();
+                                var endDate = new moment(evJSON["end"]["dateTime"]).utc().toDate();
+                                console.log(startDate);
                                 var startDateString = dateFormat(startDate, "mmmm dS, h:MM TT");
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
