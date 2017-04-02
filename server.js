@@ -393,10 +393,10 @@ dialog.matches('viewAppointment',
                                 var startDateString = startDateM.format('MMM Do, h:mma');
                                 var endDateString = null;
                                 if (sameDay(startDate, endDate)) {
-                                    endDateString = dendDateM.format('h:mma');
+                                    endDateString = endDateM.format('h:mma');
                                 }
                                 else {
-                                    endDateString = dendDateM.format('MMM Do, h:mma');
+                                    endDateString = endDateM.format('MMM Do, h:mma');
                                 }
                                 // console.log("send");
                                 console.log(currentBusiness);
